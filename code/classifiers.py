@@ -1,9 +1,14 @@
 from utils import *
-
+from sklearn.neighbors import KNeighborsClassifier
 
 def KNN_classifier(train_features, train_labels, test_features, num_neighbors):
-    # outputs labels for all testing images
+	neigh = KNeighborsClassifier(n_neighbors=num_neighbors)
+	neigh.fit(train_features, train_labels)
 
+	# iterate over columns M x d
+	 
+	
+    # outputs labels for all testing images
     # train_features is an N x d matrix, where d is the dimensionality of the
     # feature representation.
     # train_labels is an N x 1 array, where each entry is an integer

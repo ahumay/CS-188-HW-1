@@ -65,12 +65,20 @@ def tinyImages(train_features, test_features, train_labels, test_labels, label_d
     # test_labels is a nx1 array of integers, containing the label values
     # label_dict is a 15x1 array of strings, containing the names of the labels
     # classResult is a 18x1 array, containing accuracies and runtimes
-    processedFeatures = []
-
+    8by8Images = []
     for i in range(len(train_features)):
-        currentResizedImage = imresize(train_features[i], 100)
-        processedFeatures.append(currentResizedImage)
-        #print(imageFilePath)
-        
+        currentResizedImage = imresize(train_features[i], 8)
+        8by8Images.append(currentResizedImage)
+
+    16by16Images = []
+    for i in range(len(train_features)):
+        currentResizedImage = imresize(train_features[i], 16)
+        16by16Images.append(currentResizedImage)
+
+    32by32Images = []
+    for i in range(len(train_features)):
+        currentResizedImage = imresize(train_features[i], 32)
+        32by32Images.append(currentResizedImage)
+
     return classResult
     

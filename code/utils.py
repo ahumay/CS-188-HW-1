@@ -6,7 +6,13 @@ from sklearn import neighbors, svm, cluster
 def imresize(input_image, target_size):
     # resizes the input image to a new image of size [target_size, target_size]. normalizes the output image
     # to be zero-mean, and in the [-1, 1] range.
-    return output_image
+    dim = (target_size, target_size)
+    resized = cv2.resize(input_image, dim)
+    # print("Resized dimensions: {}".format(resized.shape))
+
+    # normalizes the output image to be zero-mean, and in the [-1, 1] range.
+    output_image = cv2.normalize(resized, None, -1, 1, cv2.NORM_MINMAX)
+    return output_image # can print output_image to check
 
 def reportAccuracy(true_labels, predicted_labels, label_dict):
     # generates and returns the accuracy of a model
@@ -18,7 +24,14 @@ def reportAccuracy(true_labels, predicted_labels, label_dict):
     # label_dict is a 15x1 cell array where each entry is a string
     # containing the name of that category
     # accuracy is a scalar, defined in the spec (in %)
+    numCorrectPredictions = 0
+    numPredictions = len(predicted_labels) 
 
+    for i in range(numPredictions):
+        if predicted_labels[i] == true_labels[i]:
+            numCorrectPredictions = numCorrectPredictions + 1
+
+    accuracy = numCorrectPredictions / numPredictions
     return accuracy
 
 def buildDict(train_images, dict_size, feature_type, clustering_type):

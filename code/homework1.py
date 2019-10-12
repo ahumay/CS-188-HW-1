@@ -34,3 +34,32 @@ from classifiers import *
 
 
 if __name__ == "__main__":
+	img = cv2.imread('data/train/bedroom/image_0001.jpg', cv2.IMREAD_UNCHANGED)
+	resized = imresize(img, 100)
+	cv2.imwrite('output.jpg', resized)
+
+	# resize/normalize training images and put into separate list
+	# creates corresponding list of the same size that holds integer value of categories
+	import os
+	rootdir = 'data/train'
+
+	categories = ['Forest', 'bedroom', 'Office', 'Highway', 'Coast', 'Insidecity', 'TallBuilding', 'industrial', 'Street', 'livingroom', 'Suburb', 'Mountain', 'kitchen', 'OpenCountry', 'store']
+
+	processedImages = []
+	processedImageLabels = []
+
+	currentCategoryID = 0
+	for subdir, dirs, files in os.walk(rootdir):
+		# print("Debug | current directory is:" + subdir + " and currentCategoryID is:" + str(currentCategoryID))
+		for file in files:
+			imageFilePath = os.path.join(subdir, file)
+			if imageFilePath.lower().endswith(('.png', '.jpg', '.jpeg')):
+					currentImage = cv2.imread(imageFilePath, cv2.IMREAD_UNCHANGED)
+					currentResizedImage = imresize(currentImage, 100)
+					processedImages.append(currentResizedImage)
+					processedImageLabels.append(currentCategoryID)
+				#print(imageFilePath)
+		currentCategoryID = currentCategoryID + 1
+
+	# print("len(processedImages): " + str(len(processedImages)))
+	# print("len(processedImageLabels): " + str(len(processedImageLabels)))

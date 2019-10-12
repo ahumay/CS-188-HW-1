@@ -43,14 +43,13 @@ if __name__ == "__main__":
 	# creates corresponding list of the same size that holds integer value of categories
 	label_dict = ['Forest', 'bedroom', 'Office', 'Highway', 'Coast', 'Insidecity', 'TallBuilding', 'industrial', 'Street', 'livingroom', 'Suburb', 'Mountain', 'kitchen', 'OpenCountry', 'store']
 
-	rootdir = '../data/train'
 	train_features = []
 	train_labels = []
 	currentCategoryID = 0
-	for subdir, dirs, files in os.walk(rootdir):
+	for subdirectory, directory, imageList in os.walk('../data/train'):
 		# print("Debug | current directory is:" + subdir + " and currentCategoryID is:" + str(currentCategoryID))
-		for file in files:
-			imageFilePath = os.path.join(subdir, file)
+		for file in imageList:
+			imageFilePath = os.path.join(subdirectory, file)
 			if imageFilePath.lower().endswith(('.png', '.jpg', '.jpeg')):
 					currentImage = cv2.imread(imageFilePath, cv2.IMREAD_UNCHANGED)
 					train_features.append(currentImage)
@@ -58,14 +57,13 @@ if __name__ == "__main__":
 				#print(imageFilePath)
 		currentCategoryID = currentCategoryID + 1
 
-	rootdir = '../data/test'
 	test_features = []
 	test_labels = []
 	currentCategoryID = 0
-	for subdir, dirs, files in os.walk(rootdir):
+	for subdirectory, directory, imageList in os.walk('../data/test'):
 		# print("Debug | current directory in test is:" + subdir + " and currentCategoryID is:" + str(currentCategoryID))
-		for file in files:
-			imageFilePath = os.path.join(subdir, file)
+		for file in imageList:
+			imageFilePath = os.path.join(subdirectory, file)
 			if imageFilePath.lower().endswith(('.png', '.jpg', '.jpeg')):
 					currentImage = cv2.imread(imageFilePath, cv2.IMREAD_UNCHANGED)
 					test_features.append(currentImage)

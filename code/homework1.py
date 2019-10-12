@@ -1,4 +1,5 @@
 from classifiers import *
+import os
 
 # interpreting your performance with 100 training examples per category:
 # accuracy  =   0 ->  your code is broken (probably not the classifier's
@@ -34,20 +35,17 @@ from classifiers import *
 
 
 if __name__ == "__main__":
-	img = cv2.imread('data/train/bedroom/image_0001.jpg', cv2.IMREAD_UNCHANGED)
+	img = cv2.imread('../data/train/bedroom/image_0001.jpg', cv2.IMREAD_UNCHANGED)
 	resized = imresize(img, 100)
 	cv2.imwrite('output.jpg', resized)
 
 	# resize/normalize training images and put into separate list
 	# creates corresponding list of the same size that holds integer value of categories
-	import os
-	rootdir = 'data/train'
+	label_dict = ['Forest', 'bedroom', 'Office', 'Highway', 'Coast', 'Insidecity', 'TallBuilding', 'industrial', 'Street', 'livingroom', 'Suburb', 'Mountain', 'kitchen', 'OpenCountry', 'store']
 
-	categories = ['Forest', 'bedroom', 'Office', 'Highway', 'Coast', 'Insidecity', 'TallBuilding', 'industrial', 'Street', 'livingroom', 'Suburb', 'Mountain', 'kitchen', 'OpenCountry', 'store']
-
-	processedImages = []
-	processedImageLabels = []
-
+	rootdir = '../data/train'
+	train_features = []
+	train_labels = []
 	currentCategoryID = 0
 	for subdir, dirs, files in os.walk(rootdir):
 		# print("Debug | current directory is:" + subdir + " and currentCategoryID is:" + str(currentCategoryID))
@@ -55,11 +53,27 @@ if __name__ == "__main__":
 			imageFilePath = os.path.join(subdir, file)
 			if imageFilePath.lower().endswith(('.png', '.jpg', '.jpeg')):
 					currentImage = cv2.imread(imageFilePath, cv2.IMREAD_UNCHANGED)
-					currentResizedImage = imresize(currentImage, 100)
-					processedImages.append(currentResizedImage)
-					processedImageLabels.append(currentCategoryID)
+					train_features.append(currentImage)
+					train_labels.append(currentCategoryID)
 				#print(imageFilePath)
 		currentCategoryID = currentCategoryID + 1
 
-	# print("len(processedImages): " + str(len(processedImages)))
-	# print("len(processedImageLabels): " + str(len(processedImageLabels)))
+	rootdir = '../data/test'
+	test_features = []
+	test_labels = []
+	currentCategoryID = 0
+	for subdir, dirs, files in os.walk(rootdir):
+		# print("Debug | current directory in test is:" + subdir + " and currentCategoryID is:" + str(currentCategoryID))
+		for file in files:
+			imageFilePath = os.path.join(subdir, file)
+			if imageFilePath.lower().endswith(('.png', '.jpg', '.jpeg')):
+					currentImage = cv2.imread(imageFilePath, cv2.IMREAD_UNCHANGED)
+					test_features.append(currentImage)
+					test_labels.append(currentCategoryID)
+				# print(imageFilePath)
+		currentCategoryID = currentCategoryID + 1
+
+	tinyImages(train_features, test_features, train_labels, test_labels, label_dict)
+
+	# print("len(test_features): " + str(len(test_features)))
+	# print("len(train_features): " + str(len(train_features)))

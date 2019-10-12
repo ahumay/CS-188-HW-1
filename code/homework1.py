@@ -1,4 +1,6 @@
 from classifiers import *
+from utils import *
+import cv2
 import os
 
 # interpreting your performance with 100 training examples per category:
@@ -35,10 +37,6 @@ import os
 
 
 if __name__ == "__main__":
-	img = cv2.imread('../data/train/bedroom/image_0001.jpg', cv2.IMREAD_UNCHANGED)
-	resized = imresize(img, 100)
-	cv2.imwrite('output.jpg', resized)
-
 	# resize/normalize training images and put into separate list
 	# creates corresponding list of the same size that holds integer value of categories
 	label_dict = ['Forest', 'bedroom', 'Office', 'Highway', 'Coast', 'Insidecity', 'TallBuilding', 'industrial', 'Street', 'livingroom', 'Suburb', 'Mountain', 'kitchen', 'OpenCountry', 'store']

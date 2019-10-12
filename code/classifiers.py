@@ -4,10 +4,9 @@ from sklearn.neighbors import KNeighborsClassifier
 def KNN_classifier(train_features, train_labels, test_features, num_neighbors):
 	neigh = KNeighborsClassifier(n_neighbors=num_neighbors)
 	neigh.fit(train_features, train_labels)
-
-	# iterate over columns M x d
-	 
-	
+	prediction_categories = []
+	for i in range(len(test_features)):
+		predicted_categories.append(neigh.predict(test_features[i]))
     # outputs labels for all testing images
     # train_features is an N x d matrix, where d is the dimensionality of the
     # feature representation.
@@ -18,7 +17,7 @@ def KNN_classifier(train_features, train_labels, test_features, num_neighbors):
     # starter code.
     # predicted_categories is an M x 1 array, where each entry is an integer
     # indicating the predicted category for each test image.
-    return predicted_categories
+	return predicted_categories
 
 
 def SVM_classifier(train_features, train_labels, test_features, is_linear, svm_lambda):

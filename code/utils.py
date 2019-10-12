@@ -2,6 +2,7 @@ import cv2
 import numpy
 import timeit
 from sklearn import neighbors, svm, cluster
+from classifiers import KNN_classifier
 
 def imresize(input_image, target_size):
     # resizes the input image to a new image of size [target_size, target_size]. normalizes the output image
@@ -65,20 +66,21 @@ def tinyImages(train_features, test_features, train_labels, test_labels, label_d
     # test_labels is a nx1 array of integers, containing the label values
     # label_dict is a 15x1 array of strings, containing the names of the labels
     # classResult is a 18x1 array, containing accuracies and runtimes
-    8by8Images = []
+	eightxeight_image = []
     for i in range(len(train_features)):
-        currentResizedImage = imresize(train_features[i], 8)
-        8by8Images.append(currentResizedImage)
+		currentResizedImage = imresize(train_features[i], 8)
+		eightxeight_image.append(currentResizedImage)
+		predictions = KNN_classifier(train_features, train_labels, test_features, 1)
+		print("predictions: {}".format(predictions))
+	sixteenxsixteen_image = []
+	for i in range(len(train_features)):
+		currentResizedImage = imresize(train_features[i], 16)
+		sixteenxsixteen_image.append(currentResizedImage)
 
-    16by16Images = []
-    for i in range(len(train_features)):
-        currentResizedImage = imresize(train_features[i], 16)
-        16by16Images.append(currentResizedImage)
-
-    32by32Images = []
-    for i in range(len(train_features)):
-        currentResizedImage = imresize(train_features[i], 32)
-        32by32Images.append(currentResizedImage)
-
-    return classResult
+	thirtytwoxthirtytwo_image = []
+	for i in range(len(train_features)):
+		currentResizedImage = imresize(train_features[i], 32)
+		thirtytwoxthirtytwo_image.append(currentResizedImage)
+	classResult = None # delete this!
+	return classResult
     

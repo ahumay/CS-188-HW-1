@@ -3,9 +3,10 @@ from sklearn.neighbors import KNeighborsClassifier
 def KNN_classifier(train_features, train_labels, test_features, num_neighbors):
 	neigh = KNeighborsClassifier(n_neighbors=num_neighbors)
 	neigh.fit(train_features, train_labels)
-	prediction_categories = []
+	predicted_categories = []
+	# print("test_features: {}".format(test_features))
 	for i in range(len(test_features)):
-		predicted_categories.append(neigh.predict(test_features[i]))
+		predicted_categories.append(neigh.predict([test_features[i]])[0])
 	# outputs labels for all testing images
 	# train_features is an N x d matrix, where d is the dimensionality of the
 	# feature representation.

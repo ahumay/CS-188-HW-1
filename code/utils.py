@@ -1,6 +1,6 @@
 import cv2
 import numpy
-import timeit
+import time
 from sklearn import neighbors, svm, cluster
 from classifiers import KNN_classifier
 
@@ -59,6 +59,18 @@ def computeBow(image, vocabulary, feature_type):
 	# BOW is the new image representation, a normalized histogram
 	return Bow
 
+def convert(original_list, newSize):
+	# takes the list of images, converts them to 2D matrices, and then converts that to a vector for the classifier
+	new_list = []
+	for i in range(len(original_list)):
+		currentResizedImage = imresize(original_list[i], newSize)
+		new_list.append(currentResizedImage)
+	
+	data = numpy.array(new_list)
+	n, nx, ny = data.shape
+	final_data = data.reshape((n, nx * ny))
+	return final_data
+
 def tinyImages(train_features, test_features, train_labels, test_labels, label_dict):
 	# train_features is a nx1 array of images
 	# test_features is a nx1 array of images
@@ -66,21 +78,19 @@ def tinyImages(train_features, test_features, train_labels, test_labels, label_d
 	# test_labels is a nx1 array of integers, containing the label values
 	# label_dict is a 15x1 array of strings, containing the names of the labels
 	# classResult is a 18x1 array, containing accuracies and runtimes
-	eightxeight_image = []
-	for i in range(len(train_features)):
-		currentResizedImage = imresize(train_features[i], 8)
-		eightxeight_image.append(currentResizedImage)
-		predictions = KNN_classifier(train_features, train_labels, test_features, 1)
-		print("predictions: {}".format(predictions))
-	sixteenxsixteen_image = []
-	for i in range(len(train_features)):
-		currentResizedImage = imresize(train_features[i], 16)
-		sixteenxsixteen_image.append(currentResizedImage)
+	classResult = []
 
-	thirtytwoxthirtytwo_image = []
-	for i in range(len(train_features)):
-		currentResizedImage = imresize(train_features[i], 32)
-		thirtytwoxthirtytwo_image.append(currentResizedImage)
-	classResult = None # delete this!
+	for imageSize in [8, 16, 32]:
+		for numNeighbors in [1, 3, 6]:
+			start_time = time.time()
+			converted_training_set = convert(train_features, imageSize)
+			converted_test_set = convert(test_features, imageSize)
+			predictions = KNN_classifier(converted_training_set, train_labels, converted_test_set, 1)
+			timeTaken = time.time() - start_time
+			accuracy = reportAccuracy(test_labels, predictions, None)
+			classResult.append(accuracy)
+			classResult.append(timeTaken)
+
+	print(classResult)
 	return classResult
 	

@@ -68,4 +68,6 @@ if __name__ == "__main__":
 
 	#tinyImages(train_features, test_features, train_labels, test_labels, label_dict)
 
-	buildDict(train_features, 50, "sift", "kmeans")
+	kmeans = buildDict(train_features, 50, "sift", "kmeans")
+	print(kmeans.labels_)
+	print(len(kmeans.labels_))

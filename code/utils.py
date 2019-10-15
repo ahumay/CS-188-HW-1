@@ -23,12 +23,11 @@ def imresize(input_image, target_size):
 	# resizes the input image to a new image of size [target_size, target_size]. normalizes the output image
 	# to be zero-mean, and in the [-1, 1] range.
 	dim = (target_size, target_size)
-	resized = cv2.resize(input_image, dim)
-	# print("Resized dimensions: {}".format(resized.shape))
+	output_image = cv2.resize(input_image, dim)
 
-	# normalizes the output image to be zero-mean, and in the [-1, 1] range.
-	# output_image = cv2.normalize(resized, None, -1, 1, cv2.NORM_MINMAX)
-	return resized # can print output_image to check
+	# Normalize image from [-255, 255]
+	# output_image = cv2.normalize(output_image, None, -255, 255, cv2.NORM_MINMAX)
+	return output_image
 
 def reportAccuracy(true_labels, predicted_labels, label_dict):
 	# generates and returns the accuracy of a model
@@ -51,7 +50,7 @@ def reportAccuracy(true_labels, predicted_labels, label_dict):
 	return accuracy
 
 def buildDict(train_images, dict_size, feature_type, clustering_type):
-	# this function will sample descriptors from the training images,
+	# this function will sample descrichromeptors from the training images,
 	# cluster them, and then return the cluster centers.
 
 	# train_images is a n x 1 array of images
@@ -64,22 +63,29 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
 	# dimention of the feature. each row is a cluster centroid / visual word.
 	sift = cv2.xfeatures2d.SIFT_create()
 	surf = cv2.xfeatures2d.SURF_create()
-	orb = cv2.ORB_create(nfeatures=2000)
+	orb = cv2.ORB_create(nfeatures=1500)
 
 	processed_training_images = readImages(train_images, 32)
 	all_features = []
 	for i in range(len(processed_training_images)):
 		keypoints_sift, descriptors = sift.detectAndCompute(processed_training_images[i], None)
-		# print("keypoints_sift:")
-		# print(keypoints_sift)
-		# print("descriptors:")
-		# print(descriptors)
+		# kp = orb.detect(processed_training_images, None)
 		feature = (keypoints_sift, descriptors)
-		all_features.append(descriptors)
+
+		# print("Features: {}".format(keypoints_sift))
+		# print("kp: {}".format(kp))
+		# print(descriptors)
+		if descriptors is None:
+			continue
+		else: 
+			for matrix in descriptors:
+				all_features.append(matrix)
+		# print(keypoints_sift, descriptors)
 
 	kmeans = cluster.KMeans(dict_size)
-	print(all_features)
-	# kmeans.fit(all_features)
+	# print(len(all_features))
+	# print(all_features)
+	kmeans.fit(all_features)
 
 	# keypoints_sift, descriptors = sift.detectAndCompute(img, None)
 	# keypoints_surf, descriptors = surf.detectAndCompute(img, None)

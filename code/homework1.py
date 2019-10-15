@@ -35,7 +35,6 @@ import os
 #                     or your classifier is cheating and seeing the test
 #                     labels.
 
-
 if __name__ == "__main__":
 	# resize/normalize training images and put into separate list
 	# creates corresponding list of the same size that holds integer value of categories
@@ -52,7 +51,6 @@ if __name__ == "__main__":
 					currentImage = cv2.imread(imageFilePath, cv2.IMREAD_UNCHANGED)
 					train_features.append(currentImage)
 					train_labels.append(currentCategoryID)
-				#print(imageFilePath)
 		currentCategoryID = currentCategoryID + 1
 
 	test_features = []
@@ -66,10 +64,8 @@ if __name__ == "__main__":
 					currentImage = cv2.imread(imageFilePath, cv2.IMREAD_UNCHANGED)
 					test_features.append(currentImage)
 					test_labels.append(currentCategoryID)
-				# print(imageFilePath)
 		currentCategoryID = currentCategoryID + 1
 
-	tinyImages(train_features, test_features, train_labels, test_labels, label_dict)
+	#tinyImages(train_features, test_features, train_labels, test_labels, label_dict)
 
-	# print("len(test_features): " + str(len(test_features)))
-	# print("len(train_features): " + str(len(train_features)))
+	buildDict(train_features, 50, "sift", "kmeans")

@@ -66,7 +66,7 @@ if __name__ == "__main__":
 					test_labels.append(currentCategoryID)
 		currentCategoryID = currentCategoryID + 1
 
-	#tinyImages(train_features, test_features, train_labels, test_labels, label_dict)
+	# tinyImages(train_features, test_features, train_labels, test_labels, label_dict)
 
 	kmeans = buildDict(train_features, 50, "sift", "kmeans")
 	print(kmeans.labels_)

@@ -2,12 +2,20 @@ import cv2
 import numpy
 import time
 from sklearn import neighbors, svm, cluster
+from sklearn.cluster import AgglomerativeClustering
 from classifiers import KNN_classifier
 
 def readImages(imagesRaw, newSize):
 	new_list = []
 	for i in range(len(imagesRaw)):
 		currentResizedImage = imresize(imagesRaw[i], newSize)
+		new_list.append(currentResizedImage)
+	return new_list
+
+def readImagesNonNormalized(imagesRaw, newSize):
+	new_list = []
+	for i in range(len(imagesRaw)):
+		currentResizedImage = imresizeNonNormalized(imagesRaw[i], newSize)
 		new_list.append(currentResizedImage)
 	return new_list
 
@@ -23,10 +31,18 @@ def imresize(input_image, target_size):
 	# resizes the input image to a new image of size [target_size, target_size]. normalizes the output image
 	# to be zero-mean, and in the [-1, 1] range.
 	dim = (target_size, target_size)
-	output_image = cv2.resize(input_image, dim)
+	img = cv2.resize(input_image, dim)
 
 	# Normalize image from [-255, 255]
-	# output_image = cv2.normalize(output_image, None, -255, 255, cv2.NORM_MINMAX)
+	output_image = cv2.normalize(img, None, -1, 1, cv2.NORM_MINMAX)
+	return output_image
+
+def imresizeNonNormalized(input_image, target_size):
+	# resizes the input image to a new image of size [target_size, target_size]. normalizes the output image
+	# to be zero-mean, and in the [-1, 1] range.
+	dim = (target_size, target_size)
+	output_image = cv2.resize(input_image, dim)
+
 	return output_image
 
 def reportAccuracy(true_labels, predicted_labels, label_dict):
@@ -61,37 +77,34 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
 
 	# the output 'vocabulary' should be dict_size x d, where d is the 
 	# dimention of the feature. each row is a cluster centroid / visual word.
+	# --- Sampling 
 	sift = cv2.xfeatures2d.SIFT_create()
 	surf = cv2.xfeatures2d.SURF_create()
-	orb = cv2.ORB_create(nfeatures=1500)
+	orb = cv2.ORB_create() # K Means Clustering only works when detectAndCompute() is run with raw train_images
 
-	processed_training_images = readImages(train_images, 32)
+	processed_training_images = readImagesNonNormalized(train_images, 32)
 	all_features = []
 	for i in range(len(processed_training_images)):
 		keypoints_sift, descriptors = sift.detectAndCompute(processed_training_images[i], None)
-		# kp = orb.detect(processed_training_images, None)
 		feature = (keypoints_sift, descriptors)
-
-		# print("Features: {}".format(keypoints_sift))
-		# print("kp: {}".format(kp))
-		# print(descriptors)
 		if descriptors is None:
 			continue
-		else: 
+		else:
 			for matrix in descriptors:
 				all_features.append(matrix)
-		# print(keypoints_sift, descriptors)
-
-	kmeans = cluster.KMeans(dict_size)
-	# print(len(all_features))
+	
+	print(len(all_features))
 	# print(all_features)
-	kmeans.fit(all_features)
 
-	# keypoints_sift, descriptors = sift.detectAndCompute(img, None)
-	# keypoints_surf, descriptors = surf.detectAndCompute(img, None)
-	# keypoints_orb, descriptors = orb.detectAndCompute(img, None)
+	# --- K Means Clustering 
+	# kmeans = cluster.KMeans(dict_size)
+	# kmeans.fit(all_features)
 
-	return kmeans
+	# --- Agglomerative Clustering
+	# npmy = numpy.array(all_features) # orb only, need to feed this into  AgglomerativeClustering().fit
+	# npmy = npmy.reshape(-1, 1) # orb only
+	clustering = AgglomerativeClustering(n_clusters=dict_size).fit(all_features)
+	return clustering
 
 def computeBow(image, vocabulary, feature_type):
 	# extracts features from the image, and returns a BOW representation using a vocabulary

@@ -149,30 +149,59 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
     # NOTE: Should you run out of memory or have performance issues, feel free to limit the 
     # number of descriptors you store per image.
     # --- Sampling 
-    sift = cv2.xfeatures2d.SIFT_create()
-    surf = cv2.xfeatures2d.SURF_create()
-    orb = cv2.ORB_create()
 
-    processed_training_images = readImagesNonNormalized(train_images, 128)
-    # --- SURF, SIFT
+    print(feature_type, clustering_type)
     allDescriptors = []
-    for i in range(len(processed_training_images)):
-        keypoints_sift, descriptors = sift.detectAndCompute(processed_training_images[i], None)
-        if descriptors is None:
-            continue
-        else:
-            for matrix in descriptors:
-                allDescriptors.append(matrix)
+    if feature_type == 'sift':
+        processed_training_images = readImagesNonNormalized(train_images, 16)
+        sift = cv2.xfeatures2d.SIFT_create()
+        for i in range(len(processed_training_images)):
+            keypoints_sift, descriptors = sift.detectAndCompute(processed_training_images[i], None)
+            if descriptors is None:
+                continue
+            else:
+                for matrix in descriptors:
+                    allDescriptors.append(matrix)
 
-    # --- Orb
-    # allDescriptors = []
-    # for i in range(len(train_images)):
-    #     keypoints_sift, descriptors = orb.detectAndCompute(train_images[i], None)
-    #     if descriptors is None:
-    #         continue
-    #     else:
-    #         for matrix in descriptors:
-    #             allDescriptors.append(matrix)
+    elif feature_type == 'surf':
+        processed_training_images = readImagesNonNormalized(train_images, 32)
+        surf = cv2.xfeatures2d.SURF_create() 
+        for i in range(len(processed_training_images)):
+            keypoints_sift, descriptors = surf.detectAndCompute(processed_training_images[i], None)
+            if descriptors is None:
+                continue
+            else:
+                for matrix in descriptors:
+                    allDescriptors.append(matrix)
+
+    elif feature_type == 'orb':
+        processed_training_images = readImages(train_images, 128)
+        orb = cv2.ORB_create() 
+        # for i in range(len(train_images)):
+        #     keypoints_sift, descriptors = orb.detectAndCompute(train_images[i], None)
+        #     if descriptors is None:
+        #         continue
+        #     else:
+        #         for matrix in descriptors:
+        #             allDescriptors.append(matrix)
+        for i in range(len(processed_training_images)):
+            kp = orb.detect(processed_training_images[i], None)
+            kp, des = orb.compute(processed_training_images[i], kp)
+            allDescriptors.append(des)
+            if des is None:
+                continue
+            else:
+                for matrix in des:
+                    allDescriptors.append(matrix)
+
+        # if clustering_type == 'hierarchical':
+        # npmy = np.array(allDescriptors) # Orb only, need to feed this into  AgglomerativeClustering().fit
+        # npmy = npmy.reshape(-1, 1) # Orb only
+
+    else:
+        print("Error. Check feature type")
+        return None
+        
     # --- Orb the way TA wanted it
     # allDescriptors = []
     # for i in range(len(train_images)):
@@ -188,40 +217,42 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
     # final_data = data.flatten()
     # print("len(final_data):" + str(len(final_data)))
 
-    # --- K Means Clustering 
-    # clustering = cluster.KMeans(dict_size)
-    # clustering.fit(allDescriptors)
-    # centers = np.array(clustering.cluster_centers_)
+    if clustering_type == 'kmeans':
+        clustering = cluster.KMeans(dict_size)
+        clustering.fit(allDescriptors)
+        centers = np.array(clustering.cluster_centers_)
 
-    # --- Agglomerative Clustering
-    # npmy = np.array(allDescriptors) # Orb only, need to feed this into  AgglomerativeClustering().fit
-    # npmy = npmy.reshape(-1, 1) # Orb only
-    clustering = AgglomerativeClustering(n_clusters=dict_size).fit(allDescriptors)
-    centersDict = {}
-    print("len(clustering.labels_):" + str(len(clustering.labels_)))
-    print("clustering.labels_:")
-    print(clustering.labels_)
-    for i in range(len(clustering.labels_)):
-        if clustering.labels_[i] not in centersDict:
-            centersDict.add(clustering.labels_[i], (allDescriptors[i], 1))
-        else:
-            (curAccumulatedDescriptor, numberOfDesciptorsRead) = centersDict[clustering.labels_[i]]
-            for idx, val in enumerate(allDescriptors[i]):
-                curAccumulatedDescriptor[idx] = val+curAccumulatedDescriptor[idx]
+    elif clustering_type == 'hierarchical':
+        clustering = AgglomerativeClustering(n_clusters=dict_size).fit(allDescriptors)
+        centersDict = {}
 
-            centersDict.update(clustering.labels_[i], (curAccumulatedDescriptor, numberOfDesciptorsRead + 1))
+        # Calculate sum of all descriptors sharing the same label
+        for i in range(len(clustering.labels_)):
+            if clustering.labels_[i] not in centersDict:
+                centersDict[clustering.labels_[i]] = (allDescriptors[i], 1)
+            else:
+                (curAccumulatedDescriptor, numberOfDesciptorsRead) = centersDict[clustering.labels_[i]]
+                for idx, val in enumerate(allDescriptors[i]):
+                    curAccumulatedDescriptor[idx] = val+curAccumulatedDescriptor[idx]
+                centersDict[clustering.labels_[i]] = (curAccumulatedDescriptor, numberOfDesciptorsRead + 1)
+        
+        # Calculate the centroids from agg clustering by averaging all points
+        # corresponding to a certain label
+        for key in centersDict:
+            (curAccumulatedDescriptor, numberOfDescriptorsRead) = centersDict[key]
+            averageDescriptor = curAccumulatedDescriptor / numberOfDescriptorsRead
+            centersDict[key] = (averageDescriptor, numberOfDescriptorsRead)
 
-    for key in centersDict:
-        (curAccumulatedDescriptor, numberOfDesciptorsRead) = centersDict[key]
-        averageDescriptor = curAccumulatedDescriptor / numberOfDesciptorsRead
-        centersDict.update(key, (averageDescriptor, numberOfDesciptorsRead))
+        # Create a numpy array of agglomerative clustering centroids
+        agg_centroids = []
+        for key in centersDict.keys():
+            agg_centroids.append(centersDict[key])
+        centers = np.array(agg_centroids)
 
-    # --- Printing info
-    print("clustering.labels_")
-    print(clustering.labels_)
-    print(len(clustering.labels_))
-    print("len(centers)")
-    print(len(centers))
+    else:
+        print("Error. Check clustering type")
+        return None
+
     return centers
 
 def computeBow(image, vocabulary, feature_type):

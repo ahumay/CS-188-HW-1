@@ -175,6 +175,7 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
                     allDescriptors.append(matrix)
 
     elif feature_type == 'orb':
+        return None
         processed_training_images = readImages(train_images, 128)
         orb = cv2.ORB_create() 
         # for i in range(len(train_images)):
@@ -264,6 +265,35 @@ def computeBow(image, vocabulary, feature_type):
     # used to create the vocabulary
 
     # BOW is the new image representation, a normalized histogram
+    processed_image = imresizeNonNormalized(image, 32)
+    sift = cv2.xfeatures2d.SIFT_create()
+    surf = cv2.xfeatures2d.SURF_create() 
+    orb = cv2.ORB_create()
+    all_descriptors = []
+    keypoints_sift, descriptors = sift.detectAndCompute(processed_image, None)
+    if descriptors is None:
+        print("NONE")
+        pass
+    else:
+        for desc in descriptors:
+            all_descriptors.append(desc)
+
+    print("vocab", len(vocabulary))
+    print("labels", len([x for x in range(1, 21)]))
+    all_descriptors = np.array(all_descriptors)
+    print(all_descriptors)
+
+    predictions = KNN_classifier(vocabulary, [x for x in range(1, 21)], all_descriptors, 3)
+    print(predictions)
+
+    pred_dict = {}
+    for pred in predictions:
+        if pred not in pred_dict:
+            pred_dict[pred] = 1
+        else:
+            pred_dict[pred] += 1
+    print("histogram dict: ", pred_dict)
+
     return Bow
     
 def tinyImages(train_features, test_features, train_labels, test_labels):

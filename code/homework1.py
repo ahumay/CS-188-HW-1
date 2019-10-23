@@ -91,6 +91,7 @@ if __name__ == "__main__":
     # Your code below, eg:
     # for i, vocab in enumerate(vocabularies):
     # ... 
+    # kmeans with test_rep, labels, and train_rep
     
     np.save(SAVEPATH+'knn_accuracies.npy', np.asarray(knn_accuracies)) # Save the accuracies in the Results/ directory
     np.save(SAVEPATH+'knn_runtimes.npy', np.asarray(knn_runtimes)) # Save the runtimes in the Results/ directory

@@ -176,7 +176,7 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
 
     elif feature_type == 'orb':
         return None
-        processed_training_images = readImages(train_images, 128)
+        processed_training_images = readImagesNonNormalized(train_images, 128)
         orb = cv2.ORB_create() 
         # for i in range(len(train_images)):
         #     keypoints_sift, descriptors = orb.detectAndCompute(train_images[i], None)
@@ -195,9 +195,9 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
                 for matrix in des:
                     allDescriptors.append(matrix)
 
-        # if clustering_type == 'hierarchical':
-        # npmy = np.array(allDescriptors) # Orb only, need to feed this into  AgglomerativeClustering().fit
-        # npmy = npmy.reshape(-1, 1) # Orb only
+        if clustering_type == 'hierarchical':
+            npmy = np.array(allDescriptors) # Orb only, need to feed this into  AgglomerativeClustering().fit
+            npmy = npmy.reshape(-1, 1) # Orb only
 
     else:
         print("Error. Check feature type")
@@ -266,33 +266,48 @@ def computeBow(image, vocabulary, feature_type):
 
     # BOW is the new image representation, a normalized histogram
     processed_image = imresizeNonNormalized(image, 32)
-    sift = cv2.xfeatures2d.SIFT_create()
-    surf = cv2.xfeatures2d.SURF_create() 
-    orb = cv2.ORB_create()
+    feature = None
+    if feature_type == "sift":
+        feature = cv2.xfeatures2d.SIFT_create()
+    elif feature_type == "surf":
+        feature = cv2.xfeatures2d.SURF_create()
+    else: 
+        feature = cv2.ORB_create()
+
     all_descriptors = []
-    keypoints_sift, descriptors = sift.detectAndCompute(processed_image, None)
+    keypoints_sift, descriptors = feature.detectAndCompute(processed_image, None)
     if descriptors is None:
-        print("NONE")
         pass
     else:
         for desc in descriptors:
             all_descriptors.append(desc)
 
-    print("vocab", len(vocabulary))
-    print("labels", len([x for x in range(1, 21)]))
     all_descriptors = np.array(all_descriptors)
     print(all_descriptors)
 
-    predictions = KNN_classifier(vocabulary, [x for x in range(1, 21)], all_descriptors, 3)
-    print(predictions)
+    bins = [x for x in range(0, vocabulary.shape()[0])]
+    distances = cdist(all_descriptors, vocabulary, 'euclidean')
+    for curDistances in distances:
+        curMin = 99999
+        minIndice = 0
+        for i, val in enumerate(curDistances):
+            if curMin > val:
+                curMin = val
+                minIndice = i
 
-    pred_dict = {}
-    for pred in predictions:
-        if pred not in pred_dict:
-            pred_dict[pred] = 1
-        else:
-            pred_dict[pred] += 1
-    print("histogram dict: ", pred_dict)
+    # raw_histogram = [x for x in range(0, vocabulary.shape()[0])]
+    #calculate distances to centroids
+    # for desc in all_descriptors:
+    #     curMin = 999999999
+    #     minIndice = 0
+    #     for i, centroid in enumerate(vocabulary):
+    #         dist = cdist(desc, centroid, 'euclidean')
+    #         if curMin > dist:
+    #             curMin = dist
+    #             minIndice = i
+    #     raw_histogram[minIndice] = raw_histogram[minIndice] + 1
+
+    Bow, _ = np.histogram(raw_histogram, vocabulary.shape()[0], density=true)
 
     return Bow
     

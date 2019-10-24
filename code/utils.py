@@ -91,7 +91,50 @@ def SVM_classifier(train_features, train_labels, test_features, is_linear, svm_l
 
     # predicted_categories is an M x 1 array, where each entry is an integer
     # indicating the predicted category for each test feature.
-    return predicted_categories
+
+
+    # Iterate over categories
+    svm_clf_list = [] 
+    unique_label_list = list(set(train_labels)) #removes duplicates
+    for i in range(len(unique_label_list)): 
+        binary_train_labels = train_labels.copy()
+
+        # Iterate over every image label in training set
+        for idx, val in enumerate(binary_train_labels):
+            if val != i:
+                binary_train_labels[idx] = 0
+            else:
+                binary_train_labels[idx] = 1
+
+        # New label dataset 1's and 0's
+        # print(binary_train_labels)
+        # print("Training SVM CLF for category: {}".format(i))
+        clf = svm.SVC(kernel="linear")
+        # clf.fit(train_features, binary_train_labels)
+        svm_clf_list.append(clf)
+
+    # At this point, we have a list of classifiers for categories 1-15
+    # For test feature, we try each classifier and compute the confidence for each classifier
+    # The index of the classifier which returns 1 with the max confidence 
+    # (however that is calculated) is the category for this particular test feature
+    print(svm_clf_list)
+
+
+    # --- deal with this later --- #
+    # Select Linear SVM or RFB SVM
+    if is_linear:
+        pass
+        # Training for each category is hard
+
+        #linear svm
+        # clf = svm.SVC(kernel="linear")
+        # clf.fit(train_features, train_labels )
+    else:
+        pass
+        #radial basis function kernel svm
+
+
+    # return predicted_categories
 
 
 def imresize(input_image, target_size):

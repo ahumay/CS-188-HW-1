@@ -82,7 +82,6 @@ if __name__ == "__main__":
         np.save(SAVEPATH + 'bow_test_' + str(i) + '.npy', np.asarray(test_rep)) # Save the representations for vocabulary i
         train_rep = [] # reset the list to save the following vocabulary
         
-    
     # Use BOW features to classify the images with a KNN classifier
     # A list to store the accuracies and one for runtimes
     knn_accuracies = []
@@ -92,7 +91,23 @@ if __name__ == "__main__":
     # for i, vocab in enumerate(vocabularies):
     # ... 
     # kmeans with test_rep, labels, and train_rep
-    
+    for i in range(12):
+        for numNeighbors in [1, 3, 6]:
+            start_time = time.time()
+            cur_train_rep = np.load(SAVEPATH + 'bow_train_' + str(i) + '.npy')
+            cur_test_rep = np.load(SAVEPATH + 'bow_test_' + str(i) + '.npy')
+            print("--- i is : " + str(i))
+            # print("cur_train_rep.shape[0], cur_test_rep.shape[0]")
+            # print(cur_train_rep.shape[0], cur_test_rep.shape[0])
+            # print(cur_train_rep)
+            # print(cur_test_rep)
+
+            predictions = KNN_classifier(cur_train_rep, train_labels, cur_test_rep, numNeighbors)
+            timeTaken = time.time() - start_time
+            accuracy = reportAccuracy(test_labels, predictions)
+            knn_accuracies.append(accuracy)
+            knn_runtimes.append(timeTaken)
+
     np.save(SAVEPATH+'knn_accuracies.npy', np.asarray(knn_accuracies)) # Save the accuracies in the Results/ directory
     np.save(SAVEPATH+'knn_runtimes.npy', np.asarray(knn_runtimes)) # Save the runtimes in the Results/ directory
     

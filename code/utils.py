@@ -94,6 +94,7 @@ def SVM_classifier(train_features, train_labels, test_features, is_linear, svm_l
     # predicted_categories is an M x 1 array, where each entry is an integer
     # indicating the predicted category for each test feature.
 
+    predicted_categories = []
 
     # Iterate over categories
     svm_clf_list = [] 
@@ -109,34 +110,48 @@ def SVM_classifier(train_features, train_labels, test_features, is_linear, svm_l
                 binary_train_labels[idx] = 1
 
         # New label dataset 1's and 0's
-        # print(binary_train_labels)
-        # print("Training SVM CLF for category: {}".format(i))
-        clf = svm.SVC(kernel="linear")
-        # clf.fit(train_features, binary_train_labels)
+        if is_linear: 
+            clf = svm.SVC(C=svm_lambda, gamma='scale', class_weight="balanced", kernel="linear")
+        else:
+            clf = svm.SVC(C=svm_lambda, gamma='scale', class_weight="balanced", kernel="rbf")
+        clf.fit(train_features, binary_train_labels)
         svm_clf_list.append(clf)
 
     # At this point, we have a list of classifiers for categories 1-15
     # For test feature, we try each classifier and compute the confidence for each classifier
     # The index of the classifier which returns 1 with the max confidence 
     # (however that is calculated) is the category for this particular test feature
-    print(svm_clf_list)
+    for feature_idx, feature in enumerate(test_features):
+        prev_best_clf_score = -100000000000000
+        curr_clf_score = 0
+        curr_best_clf_idx = 0
+
+        # Testing all classifiers 
+        clf_prediction = []
+        for clf_index, clf in enumerate(svm_clf_list):
+            prediction = clf.predict([feature])
+            if prediction == 1:
+                curr_clf_score = clf.decision_function([feature])
+                if curr_clf_score >= prev_best_clf_score:
+                    prev_best_clf_score = curr_clf_score
+                    best_clf_idx = clf_index
+            if prediction == 0:
+                curr_clf_score = clf.decision_function([feature])
+                if curr_clf_score >= prev_best_clf_score:
+                    prev_best_clf_score = curr_clf_score
+                    best_clf_idx = clf_index
+        # print("Best clf score={}, index={}".format(prev_best_clf_score, best_clf_idx))
+        predicted_categories.append(best_clf_idx)
 
 
-    # --- deal with this later --- #
-    # Select Linear SVM or RFB SVM
-    if is_linear:
-        pass
-        # Training for each category is hard
-
-        #linear svm
-        # clf = svm.SVC(kernel="linear")
-        # clf.fit(train_features, train_labels )
-    else:
-        pass
-        #radial basis function kernel svm
+            # print("CURR CLF SCORE: {}".format(curr_clf_score))
+            # if curr_clf_score >= prev_best_clf_score:
+            #     print("better clf score found {} using classifer {}".format(curr_clf_score, clf_index))
+            #     curr_best_clf_idx = clf_index
+            #     prev_best_clf_score = curr_best_clf_idx
 
 
-    # return predicted_categories
+    return predicted_categories
 
 
 def imresize(input_image, target_size):
@@ -256,7 +271,7 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
         # corresponding to a certain label
         for key in centersDict:
             (curAccumulatedDescriptor, numberOfDescriptorsRead) = centersDict[key]
-            averageDescriptor = curAccumulatedDescriptor / numberOfDescriptorsRead
+            averageDescriptor = float(curAccumulatedDescriptor) / float(numberOfDescriptorsRead)
             centersDict[key] = (averageDescriptor, numberOfDescriptorsRead)
 
         # Create a numpy array of agglomerative clustering centroids
@@ -279,14 +294,12 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
 
 def computeBow(image, vocabulary, feature_type):
     # extracts features from the image, and returns a BOW representation using a vocabulary
-
     # image is 2D array
     # vocabulary is an array of size dict_size x d
     # feature type is a string (from "sift", "surf", "orb") specifying the feature
     # used to create the vocabulary
-
     # BOW is the new image representation, a normalized histogram
-    processed_image = imresizeNonNormalized(image, 32)
+    # processed_image = imresizeNonNormalized(image, 32)
     feature = None
     if feature_type == "sift":
         feature = cv2.xfeatures2d.SIFT_create(nfeatures=25)
@@ -303,7 +316,6 @@ def computeBow(image, vocabulary, feature_type):
     else:
         for desc in descriptors:
             all_descriptors.append(desc)
-
     all_descriptors = np.array(all_descriptors)
 
     Bow = [0] * vocabulary.shape[0]
@@ -319,6 +331,12 @@ def computeBow(image, vocabulary, feature_type):
                     curMin = val
                     minIndice = j
             Bow[minIndice] = Bow[minIndice] + 1
+
+    # Noramlize the histogram 
+    for idx, val in enumerate(Bow):
+        if val != 0:
+            Bow[idx] = val / all_descriptors.shape[0]
+
     return np.array(Bow)
     
 def tinyImages(train_features, test_features, train_labels, test_labels):

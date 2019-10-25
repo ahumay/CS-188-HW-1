@@ -30,7 +30,7 @@ if __name__ == "__main__":
     
     # Load data, the function is written for you in utils
     train_images, test_images, train_labels, test_labels = load_data()
-
+    '''
     # UNCOMMENT THIS LATER
     # if args.tiny:
     #     # You have to write the tinyImages function
@@ -97,13 +97,14 @@ if __name__ == "__main__":
                 vocabularies.append(vocab)
     print("Vocabulary loaded")
 
+    ### -------------------------------- Part 3 -------------------------------------------###
+    ### -----------------------------------------------------------------------------------###
+    ### -----------------------------------------------------------------------------------###
     
     # COMMENTED SO WE DON'T RECOMPUTE BOW REPRESENTATION OF IMAGES
-    '''
     # Compute BOW representation of each image, for each vocabulary
     print("Computing BOW representation of each image, for each vocabulary")
     for i, vocab in enumerate(vocabularies):
-
         for image in train_images: # Compute the BOW representation of the training set
             rep = computeBow(image, vocab, features[i]) # Rep is a list of descriptors for a given image
             train_rep.append(rep)
@@ -120,16 +121,13 @@ if __name__ == "__main__":
         test_rep = [] # reset the list to save the following vocabulary
         print("Saved BOW representations of all test images for vocabulary {} of {}.\t FILEPATH:{}".format(i+1, len(vocabularies), BOW_test_features_path))
     print("BOW representations computed")
-    '''
-
-    ### -------------------------------- Part 3 -------------------------------------------###
-    ### -----------------------------------------------------------------------------------###
-    ### -----------------------------------------------------------------------------------###
+    
 
     # Use BOW features to classify the images with a KNN classifier
     # A list to store the accuracies and one for runtimes
     knn_accuracies = []
     knn_runtimes = []
+
 
     # Your code below, eg:
     # for i, vocab in enumerate(vocabularies):
@@ -160,7 +158,7 @@ if __name__ == "__main__":
 
     np.save(SAVEPATH+'knn_accuracies.npy', np.asarray(knn_accuracies)) # Save the accuracies in the Results/ directory
     np.save(SAVEPATH+'knn_runtimes.npy', np.asarray(knn_runtimes)) # Save the runtimes in the Results/ directory
-    
+
 
 
     ### -------------------------------- Part 4 -------------------------------------------###
@@ -170,9 +168,21 @@ if __name__ == "__main__":
     # Use BOW features to classify the images with 15 Linear SVM classifiers
     lin_accuracies = []
     lin_runtimes = []
-    
-    # Your code below
-    #...
+
+    # For this we have to create labels that are binary for each category.
+    # Say we have 150 images (ten of each) we need to iterate over these, and 
+    # pass in labels that are 0 for everything except 1 for a specific category.
+    for i in range(len(vocabularies)):
+        start_time = time.time()
+        cur_train_rep = np.load(SAVEPATH + 'bow_train_' + str(i) + '.npy')
+        cur_test_rep = np.load(SAVEPATH + 'bow_test_' + str(i) + '.npy')
+        predictions = SVM_classifier(cur_train_rep, train_labels, cur_test_rep, True, 5)
+        timeTaken = time.time() - start_time
+        accuracy = reportAccuracy(test_labels, predictions)
+        lin_accuracies.append(accuracy)
+        lin_runtimes.append(timeTaken)
+        print("SVM linear iteration {} finished with accuracy={}, runtime={}".format(i+1, accuracy, timeTaken))
+
 
     np.save(SAVEPATH+'lin_accuracies.npy', np.asarray(lin_accuracies)) # Save the accuracies in the Results/ directory
     np.save(SAVEPATH+'lin_runtimes.npy', np.asarray(lin_runtimes)) # Save the runtimes in the Results/ directory
@@ -181,16 +191,18 @@ if __name__ == "__main__":
     rbf_accuracies = []
     rbf_runtimes = []
     
-    # Your code below
-    # ...
-    '''
-    # For this we have to create labels that are binary for each category.
-    # Say we have 150 images (ten of each) we need to iterate over these, and 
-    # pass in labels that are 0 for everything except 1 for a specific category.
-    SVM_classifier(None, train_labels, None, True, None)
-
+    for i in range(len(vocabularies)):
+        start_time = time.time()
+        cur_train_rep = np.load(SAVEPATH + 'bow_train_' + str(i) + '.npy')
+        cur_test_rep = np.load(SAVEPATH + 'bow_test_' + str(i) + '.npy')
+        predictions = SVM_classifier(cur_train_rep, train_labels, cur_test_rep, False, 3)
+        timeTaken = time.time() - start_time
+        accuracy = reportAccuracy(test_labels, predictions)
+        rbf_accuracies.append(accuracy)
+        rbf_runtimes.append(timeTaken)
+        print("SVM rbf iteration {} finished with accuracy={}, runtime={}".format(i+1, accuracy, timeTaken))
     
-    # np.save(SAVEPATH +'rbf_accuracies.npy', np.asarray(rbf_accuracies)) # Save the accuracies in the Results/ directory
-    # np.save(SAVEPATH +'rbf_runtimes.npy', np.asarray(rbf_runtimes)) # Save the runtimes in the Results/ directory
+    np.save(SAVEPATH +'rbf_accuracies.npy', np.asarray(rbf_accuracies)) # Save the accuracies in the Results/ directory
+    np.save(SAVEPATH +'rbf_runtimes.npy', np.asarray(rbf_runtimes)) # Save the runtimes in the Results/ directory
             
     

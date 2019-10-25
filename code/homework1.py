@@ -47,6 +47,7 @@ if __name__ == "__main__":
     #     np.save(SAVEPATH + 'tiny_acc.npy', acc)
     #     np.save(SAVEPATH + 'tiny_time.npy', runtime)
 
+    '''
     # Create vocabularies, and save them in the result directory
     # You need to write the buildDict function
     vocabularies = []
@@ -182,8 +183,14 @@ if __name__ == "__main__":
     
     # Your code below
     # ...
+    '''
+    # For this we have to create labels that are binary for each category.
+    # Say we have 150 images (ten of each) we need to iterate over these, and 
+    # pass in labels that are 0 for everything except 1 for a specific category.
+    SVM_classifier(None, train_labels, None, True, None)
+
     
-    np.save(SAVEPATH +'rbf_accuracies.npy', np.asarray(rbf_accuracies)) # Save the accuracies in the Results/ directory
-    np.save(SAVEPATH +'rbf_runtimes.npy', np.asarray(rbf_runtimes)) # Save the runtimes in the Results/ directory
+    # np.save(SAVEPATH +'rbf_accuracies.npy', np.asarray(rbf_accuracies)) # Save the accuracies in the Results/ directory
+    # np.save(SAVEPATH +'rbf_runtimes.npy', np.asarray(rbf_runtimes)) # Save the runtimes in the Results/ directory
             
     

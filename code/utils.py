@@ -67,7 +67,7 @@ def KNN_classifier(train_features, train_labels, test_features, num_neighbors):
 
     # predicted_categories is an M x 1 array, where each entry is an integer
     # indicating the predicted category for each test image.
-    neigh = KNeighborsClassifier(n_neighbors=num_neighbors)
+    neigh = KNeighborsClassifier(n_neighbors=num_neighbors, algorithm='kd_tree')
     neigh.fit(train_features, train_labels)
     predicted_categories = neigh.predict(test_features);
     return predicted_categories
@@ -95,7 +95,6 @@ def SVM_classifier(train_features, train_labels, test_features, is_linear, svm_l
     # indicating the predicted category for each test feature.
 
     predicted_categories = []
-
     # Iterate over categories
     svm_clf_list = [] 
     unique_label_list = list(set(train_labels)) #removes duplicates
@@ -208,89 +207,54 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
 
     # NOTE: Should you run out of memory or have performance issues, feel free to limit the 
     # number of descriptors you store per image.
-    # --- Sampling 
+
+    vocabulary = [None] * dict_size
     all_descriptors = []
-    # processed_training_images = readImagesNonNormalized(train_images, 128)
+    hier_count = [0] * dict_size # For sum of all hierarchical descriptors
+
+    # Feature extraction Method
     if feature_type == 'sift':
-        sift = cv2.xfeatures2d.SIFT_create(nfeatures=25)
-        for i in range(len(train_images)):
-            keypoints_sift, descriptors = sift.detectAndCompute(train_images[i], None)
-            if descriptors is None:
-                continue
-            for desc in descriptors:
-                all_descriptors.append(desc)
-
+        extractor = cv2.xfeatures2d.SIFT_create(nfeatures=25)
     elif feature_type == 'surf':
-        surf = cv2.xfeatures2d.SURF_create() 
-        for i in range(len(train_images)):
-            keypoints_sift, descriptors = surf.detectAndCompute(train_images[i], None)
-            if descriptors is None:
-                continue
-            descriptors = random.sample(list(descriptors), min(25, len(descriptors)))
-            for desc in descriptors:
-                all_descriptors.append(desc)
-
+        extractor = cv2.xfeatures2d.SURF_create(extended=False) #64 element descriptors
     elif feature_type == 'orb':
-        orb = cv2.ORB_create() 
-        for i in range(len(train_images)):
-            kp = orb.detect(train_images[i], None)
-            kp, descriptors = orb.compute(train_images[i], kp)
-            descriptors = random.sample(list(descriptors), min(25, len(descriptors)))
-            if descriptors is None:
-                continue
-            for desc in descriptors:
-                all_descriptors.append(desc)
-        if clustering_type == 'hierarchical':
-            npmy = np.array(all_descriptors) # Orb only, need to feed this into  AgglomerativeClustering().fit
-            npmy = npmy.reshape(-1, 1) # Orb only
+        extractor = cv2.ORB_create() 
 
-    else:
-        print("Error. Check feature type")
-        return None
-    
+    # Extract descriptors
+    print("Extracting descriptors...")
+    for i in range(len(train_images)):
+        keypoints, descriptors = extractor.detectAndCompute(train_images[i], None)
+        if descriptors is None:
+            continue
+        if feature_type=='surf':
+            descriptors = random.sample(list(descriptors), min(25, len(descriptors)))
+        for descriptor in descriptors:
+            all_descriptors.append(descriptor)
+    features = np.asarray(all_descriptors)
+    print("Finished extracting descriptors...")
+
+    # Cluster descriptors to create vocabulary
+    print("Clustering descriptors to create vocabulary...")
     if clustering_type == 'kmeans':
         clustering = cluster.KMeans(dict_size)
-        clustering.fit(all_descriptors)
-        centers = np.array(clustering.cluster_centers_)
+        clustering.fit(features)
+        vocabulary = np.array(clustering.cluster_centers_)
+    elif clustering_type == "hierarchical":
+        clustering = AgglomerativeClustering(n_clusters=dict_size)
+        clustering.fit(features)
+        labels = clustering.labels_
+        for i in range(len(labels)):
+            if hier_count[labels[i]] == 0:
+                vocabulary[labels[i]] = features[i].astype(float)
+            elif hier_count[labels[i]] != 0:
+                vocabulary[labels[i]] = np.add(vocabulary[labels[i]], features[i])
+            hier_count[labels[i]] += 1
+        vocabulary = np.asarray(vocabulary)
+        for i in range(len(vocabulary)): # Average values
+            vocabulary[i] = np.divide(vocabulary[i], hier_count[i])
+    print("Finished clustering descriptors")
 
-    elif clustering_type == 'hierarchical':
-        clustering = AgglomerativeClustering(n_clusters=dict_size).fit(all_descriptors)
-        centersDict = {}
-
-        # Calculate sum of all descriptors sharing the same label
-        for i in range(len(clustering.labels_)):
-            if clustering.labels_[i] not in centersDict:
-                centersDict[clustering.labels_[i]] = (all_descriptors[i], 1)
-            else:
-                (curAccumulatedDescriptor, numberOfDesciptorsRead) = centersDict[clustering.labels_[i]]
-                for idx, val in enumerate(all_descriptors[i]):
-                    curAccumulatedDescriptor[idx] = val+curAccumulatedDescriptor[idx]
-                centersDict[clustering.labels_[i]] = (curAccumulatedDescriptor, numberOfDesciptorsRead + 1)
-        
-        # Calculate the centroids from agg clustering by averaging all points
-        # corresponding to a certain label
-        for key in centersDict:
-            (curAccumulatedDescriptor, numberOfDescriptorsRead) = centersDict[key]
-            averageDescriptor = float(curAccumulatedDescriptor) / float(numberOfDescriptorsRead)
-            centersDict[key] = (averageDescriptor, numberOfDescriptorsRead)
-
-        # Create a numpy array of agglomerative clustering centroids
-        agg_centroids = []
-        for key in centersDict.keys():
-            (averageDescriptor, numberOfDescriptorsRead) = centersDict[key]
-            agg_centroids.append(averageDescriptor)
-
-        centers = np.array(agg_centroids)
-
-    else:
-        print("Error. Check clustering type")
-        return None
-
-    # print("dict_size is: " + str(dict_size) + " and len(centers) is " + str(len(centers)))
-    for i in range(len(centers)):
-        if (len(centers[i]) != 128):
-            centers[i] = centers[i][1]
-    return centers
+    return vocabulary
 
 def computeBow(image, vocabulary, feature_type):
     # extracts features from the image, and returns a BOW representation using a vocabulary
@@ -300,44 +264,19 @@ def computeBow(image, vocabulary, feature_type):
     # used to create the vocabulary
     # BOW is the new image representation, a normalized histogram
     # processed_image = imresizeNonNormalized(image, 32)
-    feature = None
+    Bow=[0] * len(vocabulary)
     if feature_type == "sift":
-        feature = cv2.xfeatures2d.SIFT_create(nfeatures=25)
+        clustering = cv2.xfeatures2d.SIFT_create()
     elif feature_type == "surf":
-        feature = cv2.xfeatures2d.SURF_create()
-    else: 
-        return None
-        feature = cv2.ORB_create()
+        clustering = cv2.xfeatures2d.SURF_create()
+    elif feature_type == "orb":
+        clustering = cv2.ORB_create()
+    kp, descriptors = clustering.detectAndCompute(image, None)
+    for descriptor in descriptors:
+        Bow[np.array(np.linalg.norm(descriptor-vocabulary, axis=1)).argmin()]+=1
 
-    all_descriptors = []
-    keypoints_sift, descriptors = feature.detectAndCompute(image, None)
-    if descriptors is None:
-        pass
-    else:
-        for desc in descriptors:
-            all_descriptors.append(desc)
-    all_descriptors = np.array(all_descriptors)
-
-    Bow = [0] * vocabulary.shape[0]
-    if all_descriptors.shape[0] != 0:
-        distances = cdist(all_descriptors, vocabulary, 'euclidean')
-        # print("all_descriptors.shape, vocabulary.shape, len(distances), bins")
-        # print(all_descriptors.shape, vocabulary.shape, len(distances), len(bins))
-        for i, curDistances in enumerate(distances):
-            curMin = 99999
-            minIndice = 0
-            for j, val in enumerate(curDistances):
-                if curMin > val:
-                    curMin = val
-                    minIndice = j
-            Bow[minIndice] = Bow[minIndice] + 1
-
-    # Noramlize the histogram 
-    for idx, val in enumerate(Bow):
-        if val != 0:
-            Bow[idx] = val / all_descriptors.shape[0]
-
-    return np.array(Bow)
+    # BOW is the new image representation, a normalized histogram
+    return np.asarray(Bow) / float(len(descriptors))
     
 def tinyImages(train_features, test_features, train_labels, test_labels):
     # Resizes training images and flattens them to train a KNN classifier using the training labels

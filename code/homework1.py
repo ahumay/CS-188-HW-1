@@ -81,7 +81,7 @@ if __name__ == "__main__":
     train_rep = [] # To store a set of BOW representations for the train images (given a vocabulary)
     features = ['sift'] * 4 + ['surf'] * 4 + ['orb'] * 4 # Order in which features were used 
     # for vocabulary generation
-
+    
 
     ### -------------------------------- Part 2 -------------------------------------------###
     ### -----------------------------------------------------------------------------------###
@@ -103,6 +103,7 @@ if __name__ == "__main__":
     
     # COMMENTED SO WE DON'T RECOMPUTE BOW REPRESENTATION OF IMAGES
     # Compute BOW representation of each image, for each vocabulary
+    '''
     print("Computing BOW representation of each image, for each vocabulary")
     for i, vocab in enumerate(vocabularies):
         for image in train_images: # Compute the BOW representation of the training set
@@ -121,7 +122,7 @@ if __name__ == "__main__":
         test_rep = [] # reset the list to save the following vocabulary
         print("Saved BOW representations of all test images for vocabulary {} of {}.\t FILEPATH:{}".format(i+1, len(vocabularies), BOW_test_features_path))
     print("BOW representations computed")
-    
+    '''
 
     # Use BOW features to classify the images with a KNN classifier
     # A list to store the accuracies and one for runtimes
@@ -133,17 +134,7 @@ if __name__ == "__main__":
     # for i, vocab in enumerate(vocabularies):
     # ... 
     # kmeans with test_rep, labels, and train_rep
-    cur_test_rep = np.load(SAVEPATH + 'bow_test_' + '1' + '.npy')
-    # print(len(cur_test_rep))
-    import math 
-    for val in cur_test_rep:
-        if len(val) != 50:
-            print(len(val))
-        for elm in val:
-            if math.isnan(elm):
-                print("nan found")
-                break
-    
+    '''
     for i in range(len(vocabularies)):
         for numNeighbors in [1, 3, 6]:
             start_time = time.time()
@@ -158,7 +149,7 @@ if __name__ == "__main__":
 
     np.save(SAVEPATH+'knn_accuracies.npy', np.asarray(knn_accuracies)) # Save the accuracies in the Results/ directory
     np.save(SAVEPATH+'knn_runtimes.npy', np.asarray(knn_runtimes)) # Save the runtimes in the Results/ directory
-
+    '''
 
 
     ### -------------------------------- Part 4 -------------------------------------------###
@@ -176,7 +167,7 @@ if __name__ == "__main__":
         start_time = time.time()
         cur_train_rep = np.load(SAVEPATH + 'bow_train_' + str(i) + '.npy')
         cur_test_rep = np.load(SAVEPATH + 'bow_test_' + str(i) + '.npy')
-        predictions = SVM_classifier(cur_train_rep, train_labels, cur_test_rep, True, 5)
+        predictions = SVM_classifier(cur_train_rep, train_labels, cur_test_rep, True, 15)
         timeTaken = time.time() - start_time
         accuracy = reportAccuracy(test_labels, predictions)
         lin_accuracies.append(accuracy)
@@ -195,7 +186,7 @@ if __name__ == "__main__":
         start_time = time.time()
         cur_train_rep = np.load(SAVEPATH + 'bow_train_' + str(i) + '.npy')
         cur_test_rep = np.load(SAVEPATH + 'bow_test_' + str(i) + '.npy')
-        predictions = SVM_classifier(cur_train_rep, train_labels, cur_test_rep, False, 3)
+        predictions = SVM_classifier(cur_train_rep, train_labels, cur_test_rep, False, 5)
         timeTaken = time.time() - start_time
         accuracy = reportAccuracy(test_labels, predictions)
         rbf_accuracies.append(accuracy)

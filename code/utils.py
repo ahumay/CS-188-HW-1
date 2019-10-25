@@ -1,5 +1,6 @@
 import os
 import cv2
+import random
 import numpy as np
 import timeit, time
 from sklearn import neighbors, svm, cluster, preprocessing
@@ -131,7 +132,7 @@ def reportAccuracy(true_labels, predicted_labels):
         if predicted_labels[i] == true_labels[i]:
             numCorrectPredictions = numCorrectPredictions + 1
 
-    accuracy = numCorrectPredictions / numPredictions
+    accuracy = float(numCorrectPredictions) / float(numPredictions)
     return accuracy * 100
 
 def buildDict(train_images, dict_size, feature_type, clustering_type):
@@ -150,47 +151,39 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
     # NOTE: Should you run out of memory or have performance issues, feel free to limit the 
     # number of descriptors you store per image.
     # --- Sampling 
-
-    print(feature_type, clustering_type)
-    allDescriptors = []
+    all_descriptors = []
+    # processed_training_images = readImagesNonNormalized(train_images, 128)
     if feature_type == 'sift':
-        processed_training_images = readImagesNonNormalized(train_images, 128)
-        sift = cv2.xfeatures2d.SIFT_create()
-        for i in range(len(processed_training_images)):
-            keypoints_sift, descriptors = sift.detectAndCompute(processed_training_images[i], None)
+        sift = cv2.xfeatures2d.SIFT_create(nfeatures=25)
+        for i in range(len(train_images)):
+            keypoints_sift, descriptors = sift.detectAndCompute(train_images[i], None)
             if descriptors is None:
                 continue
-            else:
-                for matrix in descriptors:
-                    allDescriptors.append(matrix)
+            for desc in descriptors:
+                all_descriptors.append(desc)
 
     elif feature_type == 'surf':
-        processed_training_images = readImagesNonNormalized(train_images, 128)
         surf = cv2.xfeatures2d.SURF_create() 
-        for i in range(len(processed_training_images)):
-            keypoints_sift, descriptors = surf.detectAndCompute(processed_training_images[i], None)
+        for i in range(len(train_images)):
+            keypoints_sift, descriptors = surf.detectAndCompute(train_images[i], None)
             if descriptors is None:
                 continue
-            else:
-                for matrix in descriptors:
-                    allDescriptors.append(matrix)
+            descriptors = random.sample(list(descriptors), min(25, len(descriptors)))
+            for desc in descriptors:
+                all_descriptors.append(desc)
 
     elif feature_type == 'orb':
-        return None
-        processed_training_images = readImagesNonNormalized(train_images, 128)
         orb = cv2.ORB_create() 
-        for i in range(len(processed_training_images)):
-            kp = orb.detect(processed_training_images[i], None)
-            kp, des = orb.compute(processed_training_images[i], kp)
-            allDescriptors.append(des)
-            if des is None:
+        for i in range(len(train_images)):
+            kp = orb.detect(train_images[i], None)
+            kp, descriptors = orb.compute(train_images[i], kp)
+            descriptors = random.sample(list(descriptors), min(25, len(descriptors)))
+            if descriptors is None:
                 continue
-            else:
-                for matrix in des:
-                    allDescriptors.append(matrix)
-
+            for desc in descriptors:
+                all_descriptors.append(desc)
         if clustering_type == 'hierarchical':
-            npmy = np.array(allDescriptors) # Orb only, need to feed this into  AgglomerativeClustering().fit
+            npmy = np.array(all_descriptors) # Orb only, need to feed this into  AgglomerativeClustering().fit
             npmy = npmy.reshape(-1, 1) # Orb only
 
     else:
@@ -199,20 +192,20 @@ def buildDict(train_images, dict_size, feature_type, clustering_type):
     
     if clustering_type == 'kmeans':
         clustering = cluster.KMeans(dict_size)
-        clustering.fit(allDescriptors)
+        clustering.fit(all_descriptors)
         centers = np.array(clustering.cluster_centers_)
 
     elif clustering_type == 'hierarchical':
-        clustering = AgglomerativeClustering(n_clusters=dict_size).fit(allDescriptors)
+        clustering = AgglomerativeClustering(n_clusters=dict_size).fit(all_descriptors)
         centersDict = {}
 
         # Calculate sum of all descriptors sharing the same label
         for i in range(len(clustering.labels_)):
             if clustering.labels_[i] not in centersDict:
-                centersDict[clustering.labels_[i]] = (allDescriptors[i], 1)
+                centersDict[clustering.labels_[i]] = (all_descriptors[i], 1)
             else:
                 (curAccumulatedDescriptor, numberOfDesciptorsRead) = centersDict[clustering.labels_[i]]
-                for idx, val in enumerate(allDescriptors[i]):
+                for idx, val in enumerate(all_descriptors[i]):
                     curAccumulatedDescriptor[idx] = val+curAccumulatedDescriptor[idx]
                 centersDict[clustering.labels_[i]] = (curAccumulatedDescriptor, numberOfDesciptorsRead + 1)
         
@@ -250,10 +243,10 @@ def computeBow(image, vocabulary, feature_type):
     # used to create the vocabulary
 
     # BOW is the new image representation, a normalized histogram
-    processed_image = imresizeNonNormalized(image, 128)
+    processed_image = imresizeNonNormalized(image, 32)
     feature = None
     if feature_type == "sift":
-        feature = cv2.xfeatures2d.SIFT_create()
+        feature = cv2.xfeatures2d.SIFT_create(nfeatures=25)
     elif feature_type == "surf":
         feature = cv2.xfeatures2d.SURF_create()
     else: 
@@ -261,7 +254,7 @@ def computeBow(image, vocabulary, feature_type):
         feature = cv2.ORB_create()
 
     all_descriptors = []
-    keypoints_sift, descriptors = feature.detectAndCompute(processed_image, None)
+    keypoints_sift, descriptors = feature.detectAndCompute(image, None)
     if descriptors is None:
         pass
     else:
@@ -270,7 +263,7 @@ def computeBow(image, vocabulary, feature_type):
 
     all_descriptors = np.array(all_descriptors)
 
-    bins = [x for x in range(0, all_descriptors.shape[0])]
+    Bow = [0] * vocabulary.shape[0]
     if all_descriptors.shape[0] != 0:
         distances = cdist(all_descriptors, vocabulary, 'euclidean')
         # print("all_descriptors.shape, vocabulary.shape, len(distances), bins")
@@ -282,11 +275,8 @@ def computeBow(image, vocabulary, feature_type):
                 if curMin > val:
                     curMin = val
                     minIndice = j
-            bins[i] = minIndice
-    # print(bins)
-    Bow, _ = np.histogram(bins, vocabulary.shape[0], density=True) #vocabulary.shape[0]
-    #print(Bow)
-    return Bow
+            Bow[minIndice] = Bow[minIndice] + 1
+    return np.array(Bow)
     
 def tinyImages(train_features, test_features, train_labels, test_labels):
     # Resizes training images and flattens them to train a KNN classifier using the training labels
